@@ -71,7 +71,7 @@ The main goal of this project is to process and analyze **sentiment datasets fro
 
 1. **Clone the Repository**:
    ```bash
-   git clone https://github.com/AmirrezaKha/mlops_sentiment_text.git
+   git clone https://github.com/AmirrezaKha/Text-Sentiment.git
    cd mlops_sentiment_text
    ```
 
