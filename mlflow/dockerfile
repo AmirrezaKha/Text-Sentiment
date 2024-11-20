@@ -1,0 +1,20 @@
+FROM python:3.9-slim
+
+USER root
+
+RUN pip install mlflow psycopg2-binary boto3
+
+COPY requirements.txt /tmp/requirements.txt
+
+RUN pip install -r /tmp/requirements.txt
+
+RUN rm /tmp/requirements.txt
+
+EXPOSE 5000
+
+ENV MLFLOW_TRACKING_URI=postgresql://mlflow_user:mlflow_password@metaflow-postgres/mlflow
+ENV MLFLOW_S3_ENDPOINT_URL=http://minio:9000
+ENV AWS_ACCESS_KEY_ID=${MINIO_ROOT_USER}
+ENV AWS_SECRET_ACCESS_KEY=${MINIO_ROOT_PASSWORD}
+
+CMD ["mlflow", "server", "--host", "0.0.0.0", "--port", "5000", "--backend-store-uri", "postgresql://mlflow_user:mlflow_password@metaflow-postgres/mlflow", "--default-artifact-root", "s3://mlflow"]

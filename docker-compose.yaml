@@ -1,0 +1,165 @@
+services:
+  # Metaflow - for workflow management
+  metaflow:
+    container_name: metaflow
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"  
+    volumes:
+      - ./external:/app/external 
+      - metaflow:/opt/metaflow
+      - ./kaggle.json:/root/.kaggle/kaggle.json:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    env_file:
+      - .env    
+    networks:
+      - sentiment-network
+    environment:
+      - METAFLOW_SERVICE_URL=http://localhost:8080
+    command: tail -f /dev/null  # This keeps the container running
+
+  # MinIO Integration
+  minio:
+    container_name: minio
+    image: ml/minio
+    build: ./minio
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+      - "9090:9090"
+    command: ["bash", "-c", "minio server /data/minio --console-address :9090"]
+    volumes:
+      - minio-data:/data
+    env_file:
+      - .env
+    networks:
+      - sentiment-network
+
+  # Hive MySQL Database
+  hive-mysql:
+    container_name: hive-mysql
+    image: mysql:5.7
+    restart: unless-stopped
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=admin
+      - MYSQL_DATABASE=metastore
+      - MYSQL_USER=hive
+      - MYSQL_PASSWORD=hive
+    volumes:
+      - metastore-data:/var/lib/mysql
+    env_file:
+      - .env
+    networks:
+      - sentiment-network
+
+  # Hive Metastore
+  hive-metastore:
+      container_name: hive-metastore
+      build: ./hive
+      restart: unless-stopped
+      ports:
+        - "9083:9083"
+      volumes:
+        - ./hive/conf/hive-site.xml:/opt/apache-hive-${HIVE_VERSION}-bin/conf/hive-site.xml
+      env_file:
+        - .env
+      networks:
+        - sentiment-network
+
+  # PostgreSQL for Metaflow
+  postgres:
+    image: postgres:13
+    container_name: metaflow-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "metaflow"]
+      interval: 5s
+      retries: 5
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    volumes:
+      - metaflow-metadb:/var/lib/postgresql/data
+      - ./docker/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    networks:
+      - sentiment-network
+
+  spark-master:
+    image: ml/spark-extended  # Use your custom image for Spark with dependencies
+    container_name: spark-master
+    build: ./spark  # Directory containing the Dockerfile
+    restart: unless-stopped
+    environment:
+      - SPARK_MODE=master
+      - MLFLOW_TRACKING_URI=http://mlflow:5000  # MLFlow URI pointing to the mlflow container
+    ports:
+      - "8084:8080"  # Spark UI
+      - "7077:7077"  # Spark Master Port
+    volumes:
+      - metaflow:/opt/metaflow
+      - ./spark/spark-defaults.conf:/opt/spark/conf/spark-defaults.conf
+      - ./external/scripts/spark/spark_main.py:/opt/bitnami/spark/spark_main.py
+      - ./external/scripts/mlops/normal_sentiment_pipeline.py:/opt/bitnami/spark/normal_sentiment_pipeline.py
+      - ./external/scripts/mlops/llm_sentiment_pipeline.py:/opt/bitnami/spark/llm_sentiment_pipeline.py
+    env_file:
+      - .env
+    networks:
+      - sentiment-network
+
+  # Spark Worker
+  spark-worker:
+    image: ml/spark-extended  # Ensure this uses the same image as the master
+    build: ./spark  # Same Dockerfile as spark master
+    restart: unless-stopped
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_MASTER_URL=spark://spark-master:7077  # Point to Spark master service
+      - SPARK_WORKER_MEMORY=2G
+      - SPARK_WORKER_CORES=1
+    volumes:
+      - ./spark/spark-defaults.conf:/opt/spark/conf/spark-defaults.conf
+    env_file:
+      - .env
+    networks:
+      - sentiment-network
+
+  # MLFlow
+  mlflow:
+    build: ./mlflow  # Custom build for MLFlow
+    image: ml/mlflow
+    container_name: mlflow
+    environment:
+      - MLFLOW_TRACKING_URI=http://mlflow:5000  # Point to itself for the tracking URI
+      - MLFLOW_S3_ENDPOINT_URL=http://minio:9000  # S3 endpoint for MinIO storage
+      - MLFLOW_ARTIFACT_ROOT=s3://mlflow  # MLFlow artifact storage on MinIO
+      - MLFLOW_SERVER_HOST=0.0.0.0  # To make MLFlow accessible externally
+      - MLFLOW_SERVER_PORT=5000  # Expose MLFlow UI on port 5000
+    ports:
+      - "5000:5000"  # Expose MLFlow UI
+    depends_on:
+      - minio
+      - postgres
+    env_file:
+      - .env
+    networks:
+      - sentiment-network
+    volumes:
+      - mlflow:/opt/mlflow  # Volume to store MLFlow metadata
+    
+
+volumes:
+  minio-data:
+  metastore-data:
+  metaflow-metadb:
+  metaflow:
+  mlflow:
+
+networks:
+  sentiment-network: {}

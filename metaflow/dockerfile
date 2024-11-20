@@ -1,0 +1,12 @@
+FROM python:3.8-slim
+
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+
+# RUN pip install metaflow
+
+COPY . /app
+WORKDIR /app
+
+CMD ["python", "main.py"]
+# mlflow, pyiceberg pyarrow pandas scikit-learn,  needed to run inside cointaner if see problem related

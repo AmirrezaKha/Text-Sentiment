@@ -1,0 +1,42 @@
+# Data Processing and Time Handling
+pendulum
+kaggle
+kagglehub
+pylint
+
+# Database and Environment Handling
+pymssql
+python-dotenv
+
+# Web and Data Requests
+requests
+beautifulsoup4
+
+# Data Modeling
+pydantic
+
+# Spark and Iceberg
+pyspark
+pyiceberg
+
+# MinIO Integration
+minio               # For interacting with MinIO
+
+# Parquet File Handling
+pyarrow           # For Parquet file reading/writing
+fastparquet      # Alternative to pyarrow for Parquet file handling
+
+# Text Analysis and NLP
+textblob          # For text processing and sentiment analysis
+spacy              # For NLP tasks, tokenization, and more complex language models
+
+# English Language Model for spaCy (Install separately)
+# python -m spacy download en_core_web_sm
+
+# Machine Learning and Evaluation
+matplotlib          # For plotting and visualization
+seaborn           # For advanced visualization
+numpy            # For numerical computations
+scikit-learn     # For evaluation metrics and ML utilities
+
+# metaflow[services]==2.6.0

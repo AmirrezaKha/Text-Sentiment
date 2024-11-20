@@ -1,0 +1,41 @@
+# Data Processing and Time Handling
+pendulum
+kaggle
+kagglehub
+pylint
+
+# Database and Environment Handling
+pymssql
+python-dotenv
+
+# Web and Data Requests
+requests
+beautifulsoup4
+
+# Data Modeling
+pydantic
+
+# Spark and Iceberg
+pyspark
+pyiceberg
+
+# MinIO Integration
+minio
+
+# Parquet File Handling
+pyarrow
+fastparquet
+
+# Text Analysis and NLP
+textblob
+spacy
+
+# English Language Model for spaCy (Install separately)
+# python -m spacy download en_core_web_sm
+# metaflow[services]==2.6.0
+numpy
+thinc
+mlflow
+
+seaborn
+boto3

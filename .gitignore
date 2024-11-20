@@ -1,0 +1,4 @@
+airflow/logs/
+.env
+bash.sh
+kaggle.json
